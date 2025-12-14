@@ -3,314 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MeowMC | Advanced Search</title>
+    
+    <title>NameMC Clone | Advanced Search</title>
+    <meta property="og:title" content="Minecraft Player Search">
+    <meta property="og:description" content="Check history, steal skins, and view capes (Mojang + OptiFine).">
+    <meta property="og:image" content="https://assets.ppy.sh/beatmapsets/covers/cover.jpg"> <meta name="theme-color" content="#53a6f3">
+    <link rel="icon" href="https://www.minecraft.net/favicon.ico">
+
     <script src="https://bs-community.github.io/skinview3d/js/skinview3d.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg-dark: #0f0f13;
-            --glass: rgba(30, 30, 35, 0.85);
-            --border: 1px solid rgba(255, 255, 255, 0.08);
-            --accent: #5e81ac; /* Nord Blue */
-            --accent-hover: #81a1c1;
-            --text-main: #eceff4;
-            --text-dim: #d8dee9;
+            --bg-body: #111111;
+            --bg-card: #1f1f1f;
+            --text-main: #ffffff;
+            --text-dim: #9e9e9e;
+            --accent: #53a6f3;
+            --border: 1px solid #333;
         }
 
         body {
-            font-family: 'Segoe UI', Inter, sans-serif;
-            background-color: var(--bg-dark);
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(94, 129, 172, 0.1) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(136, 192, 208, 0.1) 0%, transparent 20%);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
             color: var(--text-main);
             margin: 0;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
 
-        /* Navbar / Search Area */
+        /* Navbar */
         .navbar {
             width: 100%;
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: rgba(15, 15, 19, 0.8);
-            backdrop-filter: blur(10px);
+            background: #151515;
+            padding: 15px 0;
             border-bottom: var(--border);
+            display: flex;
+            justify-content: center;
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 10;
         }
 
-        .brand {
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #eceff4 0%, #88c0d0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .search-wrapper {
-            position: relative;
-            width: 90%;
-            max-width: 500px;
-        }
-
-        .search-wrapper input {
+        .search-container {
             width: 100%;
-            padding: 15px 50px 15px 25px;
-            border-radius: 12px;
-            border: var(--border);
-            background: rgba(255, 255, 255, 0.05);
+            max-width: 800px;
+            display: flex;
+            gap: 10px;
+            padding: 0 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #0a0a0a;
             color: white;
-            font-size: 1rem;
+            font-size: 16px;
             outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-wrapper input:focus {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(94, 129, 172, 0.2);
-        }
-
-        .search-btn-icon {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-dim);
-            cursor: pointer;
-        }
-
-        /* Content Grid */
-        .grid-container {
-            display: none; /* Hidden on load */
-            grid-template-columns: 320px 1fr;
-            gap: 30px;
-            width: 90%;
-            max-width: 1200px;
-            margin: 40px auto;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* Card Styles */
-        .card {
-            background: var(--glass);
-            border: var(--border);
-            border-radius: 16px;
-            padding: 25px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-
-        /* Left Column */
-        .skin-preview {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        canvas {
-            border-radius: 12px;
-            background: radial-gradient(circle at center, #2e3440 0%, #0f0f13 100%);
-            width: 100% !important;
-            height: 400px !important;
-            cursor: move;
-        }
-
-        .btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-
-        .btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
-        .btn-secondary { background: rgba(255,255,255,0.1); }
-        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
-
-        /* Right Column */
-        .header-info h1 { margin: 0; font-size: 2.5rem; }
-        .uuid { font-family: 'Consolas', monospace; color: #6d7685; margin-top: 5px; font-size: 0.9rem; }
-
-        .section-title {
-            margin-top: 30px;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #88c0d0;
-            font-weight: 700;
-            border-bottom: 1px solid rgba(136, 192, 208, 0.2);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-
-        /* History Table */
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 8px;
-            font-size: 0.95rem;
+            transition: 0.2s;
         }
         
-        .history-item.original { border-left: 3px solid var(--accent); }
-        .date { color: #6d7685; font-size: 0.85rem; }
+        input:focus { border-color: var(--accent); }
 
-        /* Capes Badge Grid */
-        .cape-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+        button.search-btn {
+            padding: 0 25px;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        button.search-btn:hover { background: #4294e0; }
+
+        /* Grid */
+        .grid {
+            display: none;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 1100px;
+            margin-top: 40px;
+            padding: 0 20px;
+            animation: fadeIn 0.5s ease;
         }
 
-        .cape-badge {
+        /* Skin Card */
+        .skin-box {
+            background: #151515;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+            overflow: hidden;
+            position: sticky;
+            top: 100px;
+        }
+
+        canvas { width: 100% !important; height: 450px !important; cursor: move; }
+
+        .skin-actions {
+            display: flex;
+            border-top: 1px solid #333;
+        }
+
+        .action-btn {
+            flex: 1;
+            background: #1f1f1f;
+            border: none;
+            color: var(--text-dim);
+            padding: 15px 0;
+            cursor: pointer;
+            font-size: 14px;
+            border-right: 1px solid #333;
+            transition: 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .action-btn:last-child { border-right: none; }
+        .action-btn:hover { background: #2a2a2a; color: white; }
+        .action-btn i { font-size: 16px; margin-bottom: 2px; }
+
+        /* Info Side */
+        .header-section { margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 42px; font-weight: 800; }
+        
+        .uuid-box {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 16px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
+            margin-top: 10px;
         }
 
-        .cape-badge:hover { border-color: var(--accent); background: rgba(94, 129, 172, 0.2); }
-        .cape-badge.active { border-color: #a3be8c; background: rgba(163, 190, 140, 0.1); }
+        .uuid { 
+            font-family: 'Courier New', monospace; 
+            color: var(--text-dim); 
+            background: rgba(255,255,255,0.05);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
 
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #ccc;
+            border-radius: 4px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .copy-btn:hover { background: #333; color: white; }
+
+        /* Sections */
+        .section-header {
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            margin-top: 35px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        /* Capes */
+        .cape-container { display: flex; gap: 10px; flex-wrap: wrap; }
+        .cape-badge {
+            background: #2b2b2b;
+            border: 1px solid #3d3d3d;
+            padding: 8px 12px;
+            border-radius: 4px;
+            color: #ddd;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .cape-badge:hover { background: #333; border-color: #555; }
+        .cape-badge.active { border-color: #4caf50; background: rgba(76, 175, 80, 0.1); }
+
+        /* History */
+        .history-box {
+            background: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+        }
+        .history-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 14px;
+        }
+        .history-row:last-child { border-bottom: none; }
+        .history-row.newest { background: rgba(83, 166, 243, 0.05); border-left: 3px solid var(--accent); }
+        
         /* Helpers */
-        .loading, .error { text-align: center; margin-top: 50px; display: none; }
-        .error { color: #bf616a; }
-
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 900px) { .grid-container { grid-template-columns: 1fr; } }
+        .loading, .error { display: none; margin-top: 50px; text-align: center; }
+        .error { color: #ff5252; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } .skin-box { position: static; } }
     </style>
 </head>
 <body>
 
     <div class="navbar">
-        <div class="brand"><i class="fas fa-cube"></i> MeowMC</div>
-        <div class="search-wrapper">
-            <input type="text" id="username" placeholder="Search username (e.g. Dream)" onkeypress="handleEnter(event)">
-            <i class="fas fa-search search-btn-icon" onclick="searchUser()"></i>
+        <div class="search-container">
+            <input type="text" id="username" placeholder="Search Minecraft Username..." autofocus onkeypress="handleEnter(event)">
+            <button class="search-btn" onclick="searchUser()"><i class="fas fa-search"></i></button>
         </div>
     </div>
 
-    <div id="loading" class="loading"><i class="fas fa-circle-notch fa-spin"></i> Analyzing player data...</div>
+    <div id="loading" class="loading">
+        <i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Searching Mojang Database...
+    </div>
     <div id="error" class="error"></div>
 
-    <div class="grid-container" id="result">
-        <div class="skin-preview">
-            <div class="card" style="padding: 10px;">
-                <canvas id="skin_canvas"></canvas>
-            </div>
+    <div class="grid" id="result">
+        
+        <div class="skin-box">
+            <canvas id="skin_canvas"></canvas>
             
-            <div class="card" style="display: flex; gap: 10px; flex-direction: column;">
-                <button class="btn" onclick="downloadSkinDirectly()" id="dlBtn">
-                    <i class="fas fa-download"></i> Instant Download Skin
+            <div class="skin-actions">
+                <button class="action-btn" onclick="takeScreenshot()" title="Take 3D Photo">
+                    <i class="fas fa-camera"></i> Photo
                 </button>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-secondary" style="flex:1" onclick="toggleWalk()">
-                        <i class="fas fa-walking"></i> Walk
-                    </button>
-                    <button class="btn btn-secondary" style="flex:1" onclick="toggleRotate()">
-                        <i class="fas fa-sync"></i> Spin
-                    </button>
-                </div>
-            </div>
-
-            <div style="font-size: 0.8rem; color: #666; text-align: center; padding: 0 10px;">
-                <i class="fas fa-info-circle"></i> Note: Only the <strong>currently equipped</strong> skin/cape can be retrieved from Mojang servers.
+                <button class="action-btn" onclick="downloadSkin()" title="Download Skin File">
+                    <i class="fas fa-download"></i> Skin
+                </button>
+                <button class="action-btn" onclick="toggleAnimation()" title="Toggle Walking">
+                    <i class="fas fa-walking"></i> Move
+                </button>
             </div>
         </div>
 
-        <div class="card">
-            <div class="header-info">
-                <h1 id="nameDisplay">Username</h1>
-                <div class="uuid" id="uuidDisplay">UUID: </div>
-            </div>
-
-            <div class="section-title">Detected Capes</div>
-            <div class="cape-grid" id="capeList">
-                <span style="color: #666;">No equipped capes found.</span>
-            </div>
-
-            <div class="section-title">Name History</div>
-            <div class="history-list" id="historyList">
+        <div>
+            <div class="header-section">
+                <h1 id="nameDisplay">User</h1>
+                
+                <div class="uuid-box">
+                    <span class="uuid" id="uuidDisplay">UUID</span>
+                    <button class="copy-btn" onclick="copyUUID()"><i class="fas fa-copy"></i> Copy UUID</button>
+                    <button class="copy-btn" onclick="copyHeadCommand()"><i class="fas fa-skull"></i> Get Head</button>
                 </div>
+            </div>
+
+            <div class="section-header">Capes</div>
+            <div class="cape-container" id="capeList">
+                <div style="color: #444; font-style: italic;">None detected</div>
+            </div>
+
+            <div class="section-header">Username History</div>
+            <div class="history-box" id="historyList"></div>
         </div>
     </div>
 
-<script>
+    <script>
         let viewer;
         let isWalking = true;
-        let isRotating = false;
         let currentSkinUrl = "";
 
         function handleEnter(e) { if(e.key === 'Enter') searchUser(); }
 
-        // --- INSTANT DOWNLOAD ---
-        async function downloadSkin() {
-            if(!currentSkinUrl) return;
-            try {
-                const response = await fetch(currentSkinUrl);
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = document.getElementById('nameDisplay').innerText + ".png";
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-            } catch(e) { alert("Download failed"); }
+        // --- NEW FEATURES ---
+        
+        // 1. Take Screenshot of 3D Model
+        function takeScreenshot() {
+            if(!viewer) return;
+            const img = viewer.canvas.toDataURL("image/png");
+            const a = document.createElement('a');
+            a.href = img;
+            a.download = document.getElementById('nameDisplay').innerText + "_render.png";
+            a.click();
         }
 
+        // 2. Copy Head Command
+        function copyHeadCommand() {
+            const name = document.getElementById('nameDisplay').innerText;
+            const cmd = `/give @p player_head{SkullOwner:"${name}"}`;
+            navigator.clipboard.writeText(cmd);
+            alert("Copied Command: " + cmd);
+        }
+
+        function copyUUID() {
+            const uuid = document.getElementById('uuidDisplay').innerText;
+            navigator.clipboard.writeText(uuid);
+            alert("Copied UUID to clipboard!");
+        }
+
+        // --- CORE SEARCH LOGIC ---
         async function searchUser() {
             const input = document.getElementById('username').value.trim();
             if(!input) return;
 
-            // UI Reset
             document.getElementById('result').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
 
             try {
-                // 1. Fetch from Ashcon API
+                // Fetch Data
                 const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${input}`);
-                if(!res.ok) throw new Error("Player not found");
+                if(!res.ok) throw new Error("User not found");
                 const data = await res.json();
 
-                // 2. Populate Header
+                // Fill Info
                 document.getElementById('nameDisplay').innerText = data.username;
                 document.getElementById('uuidDisplay').innerText = data.uuid;
                 currentSkinUrl = data.textures.skin.url;
 
-                // 3. Populate History
+                // Fill History
                 const historyBox = document.getElementById('historyList');
                 historyBox.innerHTML = '';
                 if(data.username_history) {
@@ -323,57 +334,38 @@
                     });
                 }
 
-                // 4. CAPE LOGIC (The Important Part)
+                // Cape Logic (Proxy Fixed)
                 const capeList = document.getElementById('capeList');
                 capeList.innerHTML = '';
                 let capes = [];
 
-                // Mojang Cape
-                if(data.textures.cape) {
-                    capes.push({ 
-                        type: 'Mojang', 
-                        url: data.textures.cape.url,
-                        icon: 'fa-cube'
-                    });
-                }
+                if(data.textures.cape) capes.push({ type: 'Mojang', url: data.textures.cape.url, icon: 'fa-cube' });
 
-                // OptiFine Cape (Using Secure Proxy to fix "Mixed Content" error)
-                // We route the request through codetabs to convert HTTP -> HTTPS
+                // Proxy OptiFine to fix invisible cape bug
                 const optifineUrl = `http://s.optifine.net/capes/${data.username}.png`;
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(optifineUrl)}`;
-                
-                // We add the button. If the cape doesn't exist, the viewer will just fail silently (cleaner UI)
-                capes.push({ 
-                    type: 'OptiFine', 
-                    url: proxyUrl,
-                    icon: 'fa-vest'
-                });
+                capes.push({ type: 'OptiFine', url: proxyUrl, icon: 'fa-vest' });
 
-                // Render Buttons
                 if(capes.length > 0) {
                     capes.forEach(cape => {
                         const btn = document.createElement('div');
                         btn.className = 'cape-badge';
                         btn.innerHTML = `<i class="fas ${cape.icon}"></i> ${cape.type}`;
-                        
                         btn.onclick = () => {
-                            // Update Viewer
                             viewer.loadCape(cape.url);
-                            // Visual Active State
                             document.querySelectorAll('.cape-badge').forEach(b => b.classList.remove('active'));
                             btn.classList.add('active');
                         };
                         capeList.appendChild(btn);
                     });
-                    
-                    // Auto-load Mojang if available, otherwise try OptiFine
-                    if(capes[0].type === 'Mojang') {
+                    // Auto-load Mojang
+                    if(capes[0].type === 'Mojang') { 
                         viewer.loadCape(capes[0].url);
                         capeList.children[0].classList.add('active');
                     }
                 }
 
-                // 5. Initialize/Update Viewer
+                // Setup 3D Viewer
                 if(!viewer) {
                     viewer = new skinview3d.SkinViewer({
                         canvas: document.getElementById("skin_canvas"),
@@ -381,14 +373,14 @@
                         height: 450,
                         skin: currentSkinUrl
                     });
-                    viewer.camera.position.z = 70; // Zoom out slightly
+                    viewer.camera.position.z = 65;
                     viewer.animation = new skinview3d.WalkingAnimation();
+                    viewer.controls.enableZoom = true;
                 } else {
                     viewer.loadSkin(currentSkinUrl);
                     viewer.loadCape(null);
                 }
 
-                // Show Result
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('result').style.display = 'grid';
 
@@ -399,13 +391,22 @@
             }
         }
 
-        function toggleWalk() {
+        async function downloadSkin() {
+            if(!currentSkinUrl) return;
+            try {
+                const res = await fetch(currentSkinUrl);
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = document.getElementById('nameDisplay').innerText + ".png";
+                a.click();
+            } catch(e) {}
+        }
+
+        function toggleAnimation() {
             isWalking = !isWalking;
             viewer.animation = isWalking ? new skinview3d.WalkingAnimation() : null;
-        }
-        function toggleRotate() {
-            isRotating = !isRotating;
-            viewer.autoRotate = isRotating;
         }
     </script>
 </body>
