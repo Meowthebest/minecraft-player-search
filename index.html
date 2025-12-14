@@ -3,25 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>NameMC Clone | Advanced Search</title>
-    <meta property="og:title" content="Minecraft Player Search">
-    <meta property="og:description" content="Check history, steal skins, and view capes (Mojang + OptiFine).">
-    <meta property="og:image" content="https://assets.ppy.sh/beatmapsets/covers/cover.jpg"> <meta name="theme-color" content="#53a6f3">
-    <link rel="icon" href="https://www.minecraft.net/favicon.ico">
-
+    <title>NameMC Clone | Profile</title>
     <script src="https://bs-community.github.io/skinview3d/js/skinview3d.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Mono&display=swap" rel="stylesheet">
     
     <style>
         :root {
+            /* Exact NameMC Dark Palette */
             --bg-body: #111111;
             --bg-card: #1f1f1f;
-            --text-main: #ffffff;
-            --text-dim: #9e9e9e;
-            --accent: #53a6f3;
+            --bg-darker: #151515;
             --border: 1px solid #333;
+            --accent: #53a6f3; /* NameMC Blue */
+            --text-main: #fff;
+            --text-dim: #aaa;
         }
 
         body {
@@ -39,346 +35,394 @@
         .navbar {
             width: 100%;
             background: #151515;
-            padding: 15px 0;
+            padding: 12px 0;
             border-bottom: var(--border);
             display: flex;
             justify-content: center;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            margin-bottom: 30px;
         }
 
-        .search-container {
-            width: 100%;
-            max-width: 800px;
+        .search-box {
             display: flex;
-            gap: 10px;
-            padding: 0 20px;
+            width: 100%;
+            max-width: 900px;
+            padding: 0 15px;
         }
 
-        input {
+        .search-box input {
             flex: 1;
-            padding: 12px 15px;
-            border-radius: 6px;
+            background: #000;
             border: 1px solid #333;
-            background: #0a0a0a;
+            padding: 10px 15px;
             color: white;
-            font-size: 16px;
+            border-radius: 4px 0 0 4px;
             outline: none;
-            transition: 0.2s;
         }
-        
-        input:focus { border-color: var(--accent); }
 
-        button.search-btn {
-            padding: 0 25px;
+        .search-box button {
             background: var(--accent);
             border: none;
-            border-radius: 6px;
             color: white;
-            font-weight: 600;
+            padding: 0 20px;
+            border-radius: 0 4px 4px 0;
             cursor: pointer;
         }
-        
-        button.search-btn:hover { background: #4294e0; }
 
-        /* Grid */
-        .grid {
-            display: none;
+        /* Layout Grid */
+        .container {
+            display: none; /* Hidden until search */
             grid-template-columns: 350px 1fr;
-            gap: 30px;
+            gap: 20px;
             width: 100%;
             max-width: 1100px;
-            margin-top: 40px;
             padding: 0 20px;
-            animation: fadeIn 0.5s ease;
+            margin-bottom: 50px;
         }
 
-        /* Skin Card */
-        .skin-box {
-            background: #151515;
-            border-radius: 8px;
-            border: 1px solid #2a2a2a;
-            overflow: hidden;
-            position: sticky;
-            top: 100px;
-        }
-
-        canvas { width: 100% !important; height: 450px !important; cursor: move; }
-
-        .skin-actions {
-            display: flex;
-            border-top: 1px solid #333;
-        }
-
-        .action-btn {
-            flex: 1;
-            background: #1f1f1f;
-            border: none;
-            color: var(--text-dim);
-            padding: 15px 0;
-            cursor: pointer;
-            font-size: 14px;
-            border-right: 1px solid #333;
-            transition: 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-        .action-btn:last-child { border-right: none; }
-        .action-btn:hover { background: #2a2a2a; color: white; }
-        .action-btn i { font-size: 16px; margin-bottom: 2px; }
-
-        /* Info Side */
-        .header-section { margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 42px; font-weight: 800; }
-        
-        .uuid-box {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .uuid { 
-            font-family: 'Courier New', monospace; 
-            color: var(--text-dim); 
-            background: rgba(255,255,255,0.05);
-            padding: 5px 10px;
+        /* Left: Skin Viewer */
+        .skin-card {
+            background: var(--bg-card);
+            border: var(--border);
             border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .skin-canvas-wrapper {
+            background: #151515; /* Chequered pattern bg usually goes here */
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: var(--border);
+        }
+
+        .skin-buttons {
+            display: flex;
+        }
+
+        .skin-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-right: var(--border);
+            color: var(--text-dim);
+            padding: 12px 0;
+            cursor: pointer;
             font-size: 13px;
+        }
+        .skin-btn:last-child { border: none; }
+        .skin-btn:hover { background: #252525; color: white; }
+
+        /* Right: Info Panels */
+        .profile-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .info-panel {
+            background: var(--bg-card);
+            border: var(--border);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+
+        .panel-title {
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--text-dim);
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .data-row:last-child { border: none; }
+
+        /* Capes Grid (Like image_512dfc) */
+        .capes-grid {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .cape-slot {
+            width: 48px;
+            height: 72px;
+            background: #151515;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+        }
+        
+        .cape-slot:hover { border-color: var(--accent); }
+        .cape-slot.active { border-color: #4caf50; background: rgba(76, 175, 80, 0.1); }
+        
+        .cape-slot img {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated;
+        }
+
+        /* Command Box (Like image_512e5d) */
+        .command-group {
+            display: flex;
+            height: 38px;
+        }
+
+        .version-select {
+            background: #151515;
+            color: white;
+            border: 1px solid #333;
+            border-right: none;
+            padding: 0 10px;
+            border-radius: 4px 0 0 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .command-input {
+            flex: 1;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .copy-btn {
-            background: transparent;
-            border: 1px solid #444;
-            color: #ccc;
-            border-radius: 4px;
-            padding: 4px 10px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .copy-btn:hover { background: #333; color: white; }
-
-        /* Sections */
-        .section-header {
-            color: var(--accent);
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            margin-top: 35px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-        }
-
-        /* Capes */
-        .cape-container { display: flex; gap: 10px; flex-wrap: wrap; }
-        .cape-badge {
-            background: #2b2b2b;
-            border: 1px solid #3d3d3d;
-            padding: 8px 12px;
-            border-radius: 4px;
-            color: #ddd;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-        }
-        .cape-badge:hover { background: #333; border-color: #555; }
-        .cape-badge.active { border-color: #4caf50; background: rgba(76, 175, 80, 0.1); }
-
-        /* History */
-        .history-box {
             background: #151515;
-            border: 1px solid #2a2a2a;
-            border-radius: 4px;
+            border: 1px solid #333;
+            border-left: none;
+            color: var(--text-dim);
+            padding: 0 15px;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
         }
-        .history-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 15px;
-            border-bottom: 1px solid #2a2a2a;
-            font-size: 14px;
-        }
-        .history-row:last-child { border-bottom: none; }
-        .history-row.newest { background: rgba(83, 166, 243, 0.05); border-left: 3px solid var(--accent); }
+        .copy-btn:hover { background: #252525; color: white; }
+
+        /* Loading / Error */
+        .status-msg { margin-top: 50px; color: var(--text-dim); }
         
-        /* Helpers */
-        .loading, .error { display: none; margin-top: 50px; text-align: center; }
-        .error { color: #ff5252; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } .skin-box { position: static; } }
+        @media(max-width: 800px) { .container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
     <div class="navbar">
-        <div class="search-container">
-            <input type="text" id="username" placeholder="Search Minecraft Username..." autofocus onkeypress="handleEnter(event)">
-            <button class="search-btn" onclick="searchUser()"><i class="fas fa-search"></i></button>
+        <div class="search-box">
+            <input type="text" id="username" placeholder="Name or UUID" onkeypress="handleEnter(event)">
+            <button onclick="searchUser()"><i class="fas fa-search"></i></button>
         </div>
     </div>
 
-    <div id="loading" class="loading">
-        <i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Searching Mojang Database...
-    </div>
-    <div id="error" class="error"></div>
+    <div id="loading" class="status-msg" style="display:none;">Searching...</div>
+    <div id="error" class="status-msg" style="color:#ff5555; display:none;"></div>
 
-    <div class="grid" id="result">
-        
-        <div class="skin-box">
-            <canvas id="skin_canvas"></canvas>
-            
-            <div class="skin-actions">
-                <button class="action-btn" onclick="takeScreenshot()" title="Take 3D Photo">
-                    <i class="fas fa-camera"></i> Photo
-                </button>
-                <button class="action-btn" onclick="downloadSkin()" title="Download Skin File">
-                    <i class="fas fa-download"></i> Skin
-                </button>
-                <button class="action-btn" onclick="toggleAnimation()" title="Toggle Walking">
-                    <i class="fas fa-walking"></i> Move
-                </button>
+    <div class="container" id="result">
+        <div class="skin-card">
+            <div class="skin-canvas-wrapper">
+                <canvas id="skin_canvas"></canvas>
+            </div>
+            <div class="skin-buttons">
+                <button class="skin-btn" onclick="downloadSkin()">Download</button>
+                <button class="skin-btn" onclick="toggleAnimation()">Walk</button>
+                <button class="skin-btn" onclick="toggleRotate()">Rotate</button>
             </div>
         </div>
 
         <div>
-            <div class="header-section">
+            <div class="profile-header">
                 <h1 id="nameDisplay">User</h1>
-                
-                <div class="uuid-box">
-                    <span class="uuid" id="uuidDisplay">UUID</span>
-                    <button class="copy-btn" onclick="copyUUID()"><i class="fas fa-copy"></i> Copy UUID</button>
-                    <button class="copy-btn" onclick="copyHeadCommand()"><i class="fas fa-skull"></i> Get Head</button>
+            </div>
+
+            <div class="info-panel">
+                <div class="panel-title">Profile</div>
+                <div class="data-row">
+                    <span>UUID</span>
+                    <span id="uuidDisplay">---</span>
                 </div>
             </div>
 
-            <div class="section-header">Capes</div>
-            <div class="cape-container" id="capeList">
-                <div style="color: #444; font-style: italic;">None detected</div>
+            <div class="info-panel">
+                <div class="panel-title">Capes</div>
+                <div class="capes-grid" id="capeGrid">
+                    <span style="font-size:12px; color:#555;">No equipped capes found.</span>
+                </div>
             </div>
 
-            <div class="section-header">Username History</div>
-            <div class="history-box" id="historyList"></div>
+            <div class="info-panel">
+                <div class="panel-title">Head Command</div>
+                <div class="command-group">
+                    <select class="version-select" id="versionSelect" onchange="updateCommand()">
+                        <option value="modern">1.21</option>
+                        <option value="modern">1.20</option>
+                        <option value="modern">1.19</option>
+                        <option value="modern">1.18</option>
+                        <option value="modern">1.17</option>
+                        <option value="modern">1.16</option>
+                        <option value="modern">1.15</option>
+                        <option value="modern">1.14</option>
+                        <option value="modern">1.13</option>
+                        <option value="legacy">1.12</option>
+                        <option value="legacy">1.11</option>
+                        <option value="legacy">1.10</option>
+                        <option value="legacy">1.9</option>
+                        <option value="legacy">1.8</option>
+                    </select>
+                    <div class="command-input" id="cmdInput">/give...</div>
+                    <button class="copy-btn" onclick="copyCmd()">Copy</button>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <div class="panel-title">Name History</div>
+                <div id="historyList"></div>
+            </div>
+
         </div>
     </div>
 
     <script>
         let viewer;
         let isWalking = true;
+        let isRotating = false;
         let currentSkinUrl = "";
+        let currentName = "";
 
         function handleEnter(e) { if(e.key === 'Enter') searchUser(); }
 
-        // --- NEW FEATURES ---
-        
-        // 1. Take Screenshot of 3D Model
-        function takeScreenshot() {
-            if(!viewer) return;
-            const img = viewer.canvas.toDataURL("image/png");
-            const a = document.createElement('a');
-            a.href = img;
-            a.download = document.getElementById('nameDisplay').innerText + "_render.png";
-            a.click();
+        // --- COMMAND LOGIC (Feature from image_512e5d) ---
+        function updateCommand() {
+            const versionType = document.getElementById('versionSelect').value;
+            const display = document.getElementById('cmdInput');
+            
+            if(!currentName) return;
+
+            if (versionType === 'modern') {
+                // 1.13+ Syntax
+                display.innerText = `/give @p minecraft:player_head{SkullOwner:"${currentName}"}`;
+            } else {
+                // 1.12 and older Syntax
+                display.innerText = `/give @p minecraft:skull 1 3 {SkullOwner:"${currentName}"}`;
+            }
         }
 
-        // 2. Copy Head Command
-        function copyHeadCommand() {
-            const name = document.getElementById('nameDisplay').innerText;
-            const cmd = `/give @p player_head{SkullOwner:"${name}"}`;
-            navigator.clipboard.writeText(cmd);
-            alert("Copied Command: " + cmd);
+        function copyCmd() {
+            const text = document.getElementById('cmdInput').innerText;
+            navigator.clipboard.writeText(text);
+            alert("Command copied!");
         }
 
-        function copyUUID() {
-            const uuid = document.getElementById('uuidDisplay').innerText;
-            navigator.clipboard.writeText(uuid);
-            alert("Copied UUID to clipboard!");
-        }
-
-        // --- CORE SEARCH LOGIC ---
+        // --- SEARCH LOGIC ---
         async function searchUser() {
             const input = document.getElementById('username').value.trim();
             if(!input) return;
 
+            // UI Reset
             document.getElementById('result').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
 
             try {
-                // Fetch Data
+                // 1. Fetch Data
                 const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${input}`);
-                if(!res.ok) throw new Error("User not found");
+                if(!res.ok) throw new Error("Player not found");
                 const data = await res.json();
 
-                // Fill Info
+                // 2. Set Basic Info
+                currentName = data.username;
+                currentSkinUrl = data.textures.skin.url;
                 document.getElementById('nameDisplay').innerText = data.username;
                 document.getElementById('uuidDisplay').innerText = data.uuid;
-                currentSkinUrl = data.textures.skin.url;
+                
+                // Trigger command update
+                updateCommand();
 
-                // Fill History
-                const historyBox = document.getElementById('historyList');
-                historyBox.innerHTML = '';
+                // 3. History
+                const histDiv = document.getElementById('historyList');
+                histDiv.innerHTML = '';
                 if(data.username_history) {
-                    data.username_history.reverse().forEach((h, i) => {
-                        const date = h.changed_at ? new Date(h.changed_at).toLocaleDateString() : "Original";
+                    data.username_history.reverse().forEach(h => {
                         const row = document.createElement('div');
-                        row.className = 'history-row' + (i === 0 ? ' newest' : '');
-                        row.innerHTML = `<span>${h.username}</span> <span class="date">${date}</span>`;
-                        historyBox.appendChild(row);
+                        row.className = 'data-row';
+                        const date = h.changed_at ? new Date(h.changed_at).toLocaleDateString() : 'Original';
+                        row.innerHTML = `<span>${h.username}</span><span>${date}</span>`;
+                        histDiv.appendChild(row);
                     });
                 }
 
-                // Cape Logic (Proxy Fixed)
-                const capeList = document.getElementById('capeList');
-                capeList.innerHTML = '';
-                let capes = [];
+                // 4. CAPE GRID (The complex part)
+                const capeGrid = document.getElementById('capeGrid');
+                capeGrid.innerHTML = '';
+                let capesFound = 0;
 
-                if(data.textures.cape) capes.push({ type: 'Mojang', url: data.textures.cape.url, icon: 'fa-cube' });
+                // Function to add a cape to the grid
+                const addCapeToGrid = (url, type) => {
+                    capesFound++;
+                    const slot = document.createElement('div');
+                    slot.className = 'cape-slot';
+                    if(capesFound === 1) slot.classList.add('active'); // Select first found
+                    
+                    // We render a tiny version of the cape image
+                    slot.innerHTML = `<img src="${url}" alt="${type}">`;
+                    
+                    // Click to preview
+                    slot.onclick = () => {
+                        viewer.loadCape(url);
+                        document.querySelectorAll('.cape-slot').forEach(s => s.classList.remove('active'));
+                        slot.classList.add('active');
+                    };
+                    
+                    capeGrid.appendChild(slot);
+                };
 
-                // Proxy OptiFine to fix invisible cape bug
+                // A. Mojang Cape
+                if(data.textures.cape) {
+                    addCapeToGrid(data.textures.cape.url, 'Mojang');
+                }
+
+                // B. OptiFine Cape (Via Proxy)
                 const optifineUrl = `http://s.optifine.net/capes/${data.username}.png`;
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(optifineUrl)}`;
-                capes.push({ type: 'OptiFine', url: proxyUrl, icon: 'fa-vest' });
+                
+                // Blindly add OptiFine button (Viewer handles 404 silently)
+                addCapeToGrid(proxyUrl, 'OptiFine');
 
-                if(capes.length > 0) {
-                    capes.forEach(cape => {
-                        const btn = document.createElement('div');
-                        btn.className = 'cape-badge';
-                        btn.innerHTML = `<i class="fas ${cape.icon}"></i> ${cape.type}`;
-                        btn.onclick = () => {
-                            viewer.loadCape(cape.url);
-                            document.querySelectorAll('.cape-badge').forEach(b => b.classList.remove('active'));
-                            btn.classList.add('active');
-                        };
-                        capeList.appendChild(btn);
-                    });
-                    // Auto-load Mojang
-                    if(capes[0].type === 'Mojang') { 
-                        viewer.loadCape(capes[0].url);
-                        capeList.children[0].classList.add('active');
-                    }
-                }
 
-                // Setup 3D Viewer
+                // 5. 3D Viewer
                 if(!viewer) {
                     viewer = new skinview3d.SkinViewer({
                         canvas: document.getElementById("skin_canvas"),
                         width: 300,
-                        height: 450,
+                        height: 400,
                         skin: currentSkinUrl
                     });
-                    viewer.camera.position.z = 65;
+                    viewer.camera.position.z = 60;
                     viewer.animation = new skinview3d.WalkingAnimation();
-                    viewer.controls.enableZoom = true;
                 } else {
                     viewer.loadSkin(currentSkinUrl);
-                    viewer.loadCape(null);
+                    // Load the first found cape automatically
+                    if(data.textures.cape) viewer.loadCape(data.textures.cape.url);
+                    else viewer.loadCape(proxyUrl);
                 }
 
                 document.getElementById('loading').style.display = 'none';
@@ -386,27 +430,29 @@
 
             } catch (err) {
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').innerText = err.message;
+                document.getElementById('error').innerText = "Error: " + err.message;
                 document.getElementById('error').style.display = 'block';
             }
         }
 
+        // --- VIEWER CONTROLS ---
         async function downloadSkin() {
             if(!currentSkinUrl) return;
-            try {
-                const res = await fetch(currentSkinUrl);
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = document.getElementById('nameDisplay').innerText + ".png";
-                a.click();
-            } catch(e) {}
+            const res = await fetch(currentSkinUrl);
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = window.URL.createObjectURL(blob);
+            a.download = currentName + ".png";
+            a.click();
         }
 
         function toggleAnimation() {
             isWalking = !isWalking;
             viewer.animation = isWalking ? new skinview3d.WalkingAnimation() : null;
+        }
+        function toggleRotate() {
+            isRotating = !isRotating;
+            viewer.autoRotate = isRotating;
         }
     </script>
 </body>
