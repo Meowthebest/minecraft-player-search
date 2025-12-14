@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Player Search</title>
+    <script src="https://bs-community.github.io/skinview3d/js/skinview3d.bundle.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --accent-color: #4CAF50;
+            --secondary-text: #b3b3b3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Search Bar Styles */
+        .search-container {
+            margin-top: 50px;
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            padding: 12px 20px;
+            border-radius: 5px;
+            border: none;
+            background: var(--card-bg);
+            color: white;
+            font-size: 16px;
+            width: 300px;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 25px;
+            border-radius: 5px;
+            border: none;
+            background: var(--accent-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #45a049; }
+
+        /* Main Content Grid */
+        #result-area {
+            display: none; /* Hidden until search */
+            grid-template-columns: 1fr 2fr;
+            gap: 40px;
+            max-width: 1000px;
+            width: 90%;
+            margin-top: 40px;
+        }
+
+        /* Left Column: 3D Skin */
+        .skin-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #skin_container {
+            width: 300px;
+            height: 400px;
+        }
+
+        /* Right Column: Info & History */
+        .info-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        h1 { margin-top: 0; font-size: 2.5em; }
+        .uuid { color: var(--secondary-text); font-family: monospace; margin-bottom: 20px; display: block; }
+
+        /* History Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #404040;
+        }
+
+        th { color: var(--secondary-text); font-weight: normal; }
+        
+        .loading { margin-top: 20px; color: var(--secondary-text); display: none; }
+        .error { color: #ff5252; margin-top: 20px; display: none; }
+
+        @media (max-width: 768px) {
+            #result-area { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="search-container">
+        <input type="text" id="usernameInput" placeholder="Enter Minecraft Username..." onkeypress="handleEnter(event)">
+        <button onclick="searchPlayer()">Search</button>
+    </div>
+
+    <div class="loading" id="loading">Searching Mojang database...</div>
+    <div class="error" id="error"></div>
+
+    <div id="result-area">
+        <div class="skin-card">
+            <canvas id="skin_container"></canvas>
+            <div style="margin-top: 10px; color: #b3b3b3; font-size: 0.9em;">
+                Drag to rotate • Scroll to zoom
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h1 id="displayName">Username</h1>
+            <span class="uuid" id="displayUUID">UUID: </span>
+            
+            <h3>Name History</h3>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Changed At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let skinViewer;
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') searchPlayer();
+        }
+
+        async function searchPlayer() {
+            const username = document.getElementById('usernameInput').value;
+            const resultArea = document.getElementById('result-area');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+
+            // Reset UI
+            resultArea.style.display = 'none';
+            error.style.display = 'none';
+            loading.style.display = 'block';
+
+            if (!username) return;
+
+            try {
+                // We use Ashcon's API because it bundles history + skin + UUID in one request
+                // and allows cross-origin requests (CORS) from browser code.
+                const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${username}`);
+                
+                if (!response.ok) throw new Error('Player not found');
+                
+                const data = await response.json();
+
+                // 1. Update Text Info
+                document.getElementById('displayName').innerText = data.username;
+                document.getElementById('displayUUID').innerText = "UUID: " + data.uuid;
+
+                // 2. Update Name History Table
+                const tbody = document.querySelector('#historyTable tbody');
+                tbody.innerHTML = ''; // Clear old rows
+
+                // Reverse array to show newest names first
+                if (data.username_history) {
+                    data.username_history.reverse().forEach(entry => {
+                        const row = document.createElement('tr');
+                        
+                        const nameCell = document.createElement('td');
+                        nameCell.innerText = entry.username;
+                        
+                        const dateCell = document.createElement('td');
+                        // Format date or show "Original"
+                        dateCell.innerText = entry.changed_at 
+                            ? new Date(entry.changed_at).toLocaleDateString() 
+                            : "First Name";
+
+                        row.appendChild(nameCell);
+                        row.appendChild(dateCell);
+                        tbody.appendChild(row);
+                    });
+                }
+
+                // 3. Render 3D Skin
+                if (!skinViewer) {
+                    // Initialize viewer if not already created
+                    skinViewer = new skinview3d.SkinViewer({
+                        canvas: document.getElementById("skin_container"),
+                        width: 300,
+                        height: 400,
+                        skin: data.textures.skin.url
+                    });
+                    
+                    // Add controls (mouse rotate/zoom)
+                    skinViewer.controls.enableRotate = true;
+                    skinViewer.controls.enableZoom = true;
+                    
+                    // Add animation
+                    skinViewer.animation = new skinview3d.WalkingAnimation();
+                } else {
+                    // Just update the texture if viewer exists
+                    skinViewer.loadSkin(data.textures.skin.url);
+                }
+
+                // Handle Cape
+                if (data.textures.cape) {
+                    skinViewer.loadCape(data.textures.cape.url);
+                } else {
+                    skinViewer.loadCape(null); // Remove cape if they don't have one
+                }
+
+                // Show results
+                loading.style.display = 'none';
+                resultArea.style.display = 'grid';
+
+            } catch (err) {
+                loading.style.display = 'none';
+                error.innerText = "Error: " + err.message;
+                error.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
