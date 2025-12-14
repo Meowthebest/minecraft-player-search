@@ -265,137 +265,130 @@
         </div>
     </div>
 
-    <script>
+<script>
         let viewer;
         let isWalking = true;
-        let isRotating = true;
+        let isRotating = false;
         let currentSkinUrl = "";
 
         function handleEnter(e) { if(e.key === 'Enter') searchUser(); }
 
-        // --- THE INSTANT DOWNLOADER ---
-        async function downloadSkinDirectly() {
-            if (!currentSkinUrl) return;
-            
-            const btn = document.getElementById('dlBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Downloading...`;
-
+        // --- INSTANT DOWNLOAD ---
+        async function downloadSkin() {
+            if(!currentSkinUrl) return;
             try {
-                // 1. Fetch the image as a "Blob" (raw file data)
                 const response = await fetch(currentSkinUrl);
                 const blob = await response.blob();
-                
-                // 2. Create a fake invisible link
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                
-                // 3. Name the file based on the username
-                const username = document.getElementById('nameDisplay').innerText;
-                a.download = `${username}_skin.png`;
-                
-                // 4. Force click
+                a.download = document.getElementById('nameDisplay').innerText + ".png";
                 document.body.appendChild(a);
                 a.click();
-                
-                // 5. Cleanup
                 window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                btn.innerHTML = `<i class="fas fa-check"></i> Saved!`;
-                setTimeout(() => btn.innerHTML = originalText, 2000);
-
-            } catch (err) {
-                console.error(err);
-                btn.innerHTML = `<i class="fas fa-times"></i> Error`;
-                alert("Could not download automatically. Browser security might be blocking it.");
-            }
+            } catch(e) { alert("Download failed"); }
         }
 
         async function searchUser() {
             const input = document.getElementById('username').value.trim();
             if(!input) return;
 
-            // Reset UI
+            // UI Reset
             document.getElementById('result').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
 
             try {
+                // 1. Fetch from Ashcon API
                 const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${input}`);
-                if(!res.ok) throw new Error("Player not found or API error.");
+                if(!res.ok) throw new Error("Player not found");
                 const data = await res.json();
 
-                // 1. Basic Info
+                // 2. Populate Header
                 document.getElementById('nameDisplay').innerText = data.username;
                 document.getElementById('uuidDisplay').innerText = data.uuid;
                 currentSkinUrl = data.textures.skin.url;
 
-                // 2. Name History
-                const historyList = document.getElementById('historyList');
-                historyList.innerHTML = '';
+                // 3. Populate History
+                const historyBox = document.getElementById('historyList');
+                historyBox.innerHTML = '';
                 if(data.username_history) {
-                    // Reverse to show newest first
-                    data.username_history.reverse().forEach((h, index) => {
-                        const dateStr = h.changed_at 
-                            ? new Date(h.changed_at).toLocaleDateString() 
-                            : "Original Name";
-                        
-                        const div = document.createElement('div');
-                        div.className = `history-item ${!h.changed_at ? 'original' : ''}`;
-                        div.innerHTML = `<span>${h.username}</span> <span class="date">${dateStr}</span>`;
-                        historyList.appendChild(div);
+                    data.username_history.reverse().forEach((h, i) => {
+                        const date = h.changed_at ? new Date(h.changed_at).toLocaleDateString() : "Original";
+                        const row = document.createElement('div');
+                        row.className = 'history-row' + (i === 0 ? ' newest' : '');
+                        row.innerHTML = `<span>${h.username}</span> <span class="date">${date}</span>`;
+                        historyBox.appendChild(row);
                     });
                 }
 
-                // 3. Capes Logic (Mojang + OptiFine)
+                // 4. CAPE LOGIC (The Important Part)
                 const capeList = document.getElementById('capeList');
                 capeList.innerHTML = '';
                 let capes = [];
 
-                // Mojang Cape (Only the active one is visible via API)
+                // Mojang Cape
                 if(data.textures.cape) {
-                    capes.push({ type: 'Mojang', url: data.textures.cape.url, class: 'official' });
+                    capes.push({ 
+                        type: 'Mojang', 
+                        url: data.textures.cape.url,
+                        icon: 'fa-cube'
+                    });
                 }
 
-                // OptiFine Cape (We assume existence, viewer will hide if 404)
-                capes.push({ type: 'OptiFine', url: `http://s.optifine.net/capes/${data.username}.png`, class: 'optifine' });
+                // OptiFine Cape (Using Secure Proxy to fix "Mixed Content" error)
+                // We route the request through codetabs to convert HTTP -> HTTPS
+                const optifineUrl = `http://s.optifine.net/capes/${data.username}.png`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(optifineUrl)}`;
+                
+                // We add the button. If the cape doesn't exist, the viewer will just fail silently (cleaner UI)
+                capes.push({ 
+                    type: 'OptiFine', 
+                    url: proxyUrl,
+                    icon: 'fa-vest'
+                });
 
+                // Render Buttons
                 if(capes.length > 0) {
                     capes.forEach(cape => {
-                        const badge = document.createElement('div');
-                        badge.className = 'cape-badge';
-                        badge.innerHTML = `<i class="fas fa-vest"></i> ${cape.type}`;
-                        badge.onclick = () => {
+                        const btn = document.createElement('div');
+                        btn.className = 'cape-badge';
+                        btn.innerHTML = `<i class="fas ${cape.icon}"></i> ${cape.type}`;
+                        
+                        btn.onclick = () => {
+                            // Update Viewer
                             viewer.loadCape(cape.url);
+                            // Visual Active State
                             document.querySelectorAll('.cape-badge').forEach(b => b.classList.remove('active'));
-                            badge.classList.add('active');
+                            btn.classList.add('active');
                         };
-                        capeList.appendChild(badge);
+                        capeList.appendChild(btn);
                     });
-                } else {
-                    capeList.innerHTML = '<span style="color:#666">No capes found.</span>';
+                    
+                    // Auto-load Mojang if available, otherwise try OptiFine
+                    if(capes[0].type === 'Mojang') {
+                        viewer.loadCape(capes[0].url);
+                        capeList.children[0].classList.add('active');
+                    }
                 }
 
-                // 4. Initialize 3D Viewer
+                // 5. Initialize/Update Viewer
                 if(!viewer) {
                     viewer = new skinview3d.SkinViewer({
                         canvas: document.getElementById("skin_canvas"),
                         width: 300,
-                        height: 400,
+                        height: 450,
                         skin: currentSkinUrl
                     });
+                    viewer.camera.position.z = 70; // Zoom out slightly
                     viewer.animation = new skinview3d.WalkingAnimation();
                 } else {
                     viewer.loadSkin(currentSkinUrl);
-                    viewer.loadCape(null); // Reset cape
+                    viewer.loadCape(null);
                 }
-                
-                // Auto-load Mojang cape if exists
-                if(data.textures.cape) viewer.loadCape(data.textures.cape.url);
 
+                // Show Result
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('result').style.display = 'grid';
 
@@ -410,7 +403,6 @@
             isWalking = !isWalking;
             viewer.animation = isWalking ? new skinview3d.WalkingAnimation() : null;
         }
-        
         function toggleRotate() {
             isRotating = !isRotating;
             viewer.autoRotate = isRotating;
