@@ -265,7 +265,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         let viewer;
         let isWalking = true;
         let isRotating = true;
@@ -273,40 +273,27 @@
 
         function handleEnter(e) { if(e.key === 'Enter') searchUser(); }
 
-        // --- THE INSTANT DOWNLOADER ---
+        // --- INSTANT DOWNLOADER ---
         async function downloadSkinDirectly() {
             if (!currentSkinUrl) return;
-            
             const btn = document.getElementById('dlBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Downloading...`;
-
             try {
-                // 1. Fetch the image as a "Blob" (raw file data)
                 const response = await fetch(currentSkinUrl);
                 const blob = await response.blob();
-                
-                // 2. Create a fake invisible link
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                
-                // 3. Name the file based on the username
                 const username = document.getElementById('nameDisplay').innerText;
                 a.download = `${username}_skin.png`;
-                
-                // 4. Force click
                 document.body.appendChild(a);
                 a.click();
-                
-                // 5. Cleanup
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                
                 btn.innerHTML = `<i class="fas fa-check"></i> Saved!`;
                 setTimeout(() => btn.innerHTML = originalText, 2000);
-
             } catch (err) {
                 console.error(err);
                 btn.innerHTML = `<i class="fas fa-times"></i> Error`;
@@ -337,12 +324,10 @@
                 const historyList = document.getElementById('historyList');
                 historyList.innerHTML = '';
                 if(data.username_history) {
-                    // Reverse to show newest first
-                    data.username_history.reverse().forEach((h, index) => {
+                    data.username_history.reverse().forEach((h) => {
                         const dateStr = h.changed_at 
                             ? new Date(h.changed_at).toLocaleDateString() 
                             : "Original Name";
-                        
                         const div = document.createElement('div');
                         div.className = `history-item ${!h.changed_at ? 'original' : ''}`;
                         div.innerHTML = `<span>${h.username}</span> <span class="date">${dateStr}</span>`;
@@ -350,26 +335,41 @@
                     });
                 }
 
-                // 3. Capes Logic (Mojang + OptiFine)
+                // 3. CAPE LOGIC (FIXED WITH PROXY)
                 const capeList = document.getElementById('capeList');
                 capeList.innerHTML = '';
                 let capes = [];
 
-                // Mojang Cape (Only the active one is visible via API)
+                // A. Mojang Cape
                 if(data.textures.cape) {
-                    capes.push({ type: 'Mojang', url: data.textures.cape.url, class: 'official' });
+                    capes.push({ 
+                        type: 'Mojang', 
+                        url: data.textures.cape.url 
+                    });
                 }
 
-                // OptiFine Cape (We assume existence, viewer will hide if 404)
-                capes.push({ type: 'OptiFine', url: `http://s.optifine.net/capes/${data.username}.png`, class: 'optifine' });
+                // B. OptiFine Cape (Using CORS Proxy)
+                // We use api.codetabs.com to proxy the request so the browser accepts the image
+                const proxyUrl = "https://api.codetabs.com/v1/proxy?quest=";
+                const optifineUrl = `http://s.optifine.net/capes/${data.username}.png`;
+                
+                // We assume the user has one. If they don't, the viewer just ignores it.
+                capes.push({ 
+                    type: 'OptiFine', 
+                    url: proxyUrl + optifineUrl 
+                });
 
+                // Render Buttons
                 if(capes.length > 0) {
                     capes.forEach(cape => {
                         const badge = document.createElement('div');
                         badge.className = 'cape-badge';
                         badge.innerHTML = `<i class="fas fa-vest"></i> ${cape.type}`;
                         badge.onclick = () => {
+                            // Load cape into viewer
                             viewer.loadCape(cape.url);
+                            
+                            // Visual feedback on buttons
                             document.querySelectorAll('.cape-badge').forEach(b => b.classList.remove('active'));
                             badge.classList.add('active');
                         };
@@ -379,7 +379,7 @@
                     capeList.innerHTML = '<span style="color:#666">No capes found.</span>';
                 }
 
-                // 4. Initialize 3D Viewer
+                // 4. Initialize or Update 3D Viewer
                 if(!viewer) {
                     viewer = new skinview3d.SkinViewer({
                         canvas: document.getElementById("skin_canvas"),
@@ -390,7 +390,7 @@
                     viewer.animation = new skinview3d.WalkingAnimation();
                 } else {
                     viewer.loadSkin(currentSkinUrl);
-                    viewer.loadCape(null); // Reset cape
+                    viewer.loadCape(null); 
                 }
                 
                 // Auto-load Mojang cape if exists
