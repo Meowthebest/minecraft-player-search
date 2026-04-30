@@ -219,6 +219,22 @@
         }
         .copy-btn:hover { background: #252525; color: white; }
 
+        /* Ping Indicator Dot */
+        .ping-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+            background: #555;
+        }
+        .ping-dot-good   { background: #4caf50; box-shadow: 0 0 6px rgba(76,175,80,0.6); }
+        .ping-dot-okay   { background: #f3c053; box-shadow: 0 0 6px rgba(243,192,83,0.5); }
+        .ping-dot-bad    { background: #ff5555; box-shadow: 0 0 6px rgba(255,85,85,0.6); }
+        .ping-dot-idle   { background: #555; }
+        .ping-measuring  { color: var(--text-dim); font-style: italic; }
+
         /* Loading / Error */
         .status-msg { margin-top: 50px; color: var(--text-dim); }
         
@@ -259,6 +275,25 @@
                 <div class="data-row">
                     <span>UUID</span>
                     <span id="uuidDisplay">---</span>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="panel-title">
+                    <span>Ping</span>
+                    <button class="copy-btn" id="refreshPingBtn" onclick="refreshPing()" style="border-radius:4px; padding:2px 10px; font-size:11px; height:auto; line-height:1.6;">Refresh</button>
+                </div>
+                <div class="data-row">
+                    <span>Current ping</span>
+                    <span id="currentPing"><span class="ping-dot ping-dot-idle"></span>---</span>
+                </div>
+                <div class="data-row">
+                    <span>Last recorded ping</span>
+                    <span id="lastPing">---</span>
+                </div>
+                <div class="data-row">
+                    <span>Highest ping recorded</span>
+                    <span id="highestPing">---</span>
                 </div>
             </div>
 
@@ -307,6 +342,101 @@
         let isRotating = false;
         let currentSkinUrl = "";
         let currentName = "";
+        let currentUuid = "";
+
+        // --- PING TRACKING ---
+        const PING_STORAGE_KEY = "namemc_clone_ping_history";
+
+        function loadPingHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(PING_STORAGE_KEY)) || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function savePingHistory(history) {
+            try { localStorage.setItem(PING_STORAGE_KEY, JSON.stringify(history)); }
+            catch (e) { /* storage may be disabled - ignore */ }
+        }
+
+        function classifyPing(ms) {
+            if (ms == null) return 'ping-dot-idle';
+            if (ms < 120) return 'ping-dot-good';
+            if (ms < 300) return 'ping-dot-okay';
+            return 'ping-dot-bad';
+        }
+
+        function formatPing(ms) {
+            if (ms == null) return '---';
+            return `${Math.round(ms)} ms`;
+        }
+
+        // Measure round-trip latency to the Mojang/Ashcon API by averaging
+        // a few short requests. Uses a cache-buster to defeat HTTP caching.
+        async function measurePing(samples = 3) {
+            if (!currentUuid) return null;
+            const url = `https://api.ashcon.app/mojang/v2/user/${currentUuid}`;
+            const results = [];
+            for (let i = 0; i < samples; i++) {
+                const start = performance.now();
+                try {
+                    await fetch(`${url}?_=${Date.now()}_${i}`, { method: 'GET', cache: 'no-store' });
+                    results.push(performance.now() - start);
+                } catch (e) {
+                    // Network errors get a high penalty so they still register
+                    results.push(performance.now() - start);
+                }
+            }
+            if (!results.length) return null;
+            // Drop the slowest sample (cold-start spike) when we have >=3
+            results.sort((a, b) => a - b);
+            const trimmed = results.length >= 3 ? results.slice(0, -1) : results;
+            const avg = trimmed.reduce((s, v) => s + v, 0) / trimmed.length;
+            return avg;
+        }
+
+        function renderPingDisplay(currentMs) {
+            const history = loadPingHistory();
+            const entry = history[currentUuid] || {};
+
+            const curEl = document.getElementById('currentPing');
+            const lastEl = document.getElementById('lastPing');
+            const highEl = document.getElementById('highestPing');
+
+            curEl.innerHTML = `<span class="ping-dot ${classifyPing(currentMs)}"></span>${formatPing(currentMs)}`;
+            lastEl.innerText = entry.last != null ? formatPing(entry.last) : '---';
+            highEl.innerText = entry.highest != null ? formatPing(entry.highest) : '---';
+        }
+
+        async function refreshPing() {
+            if (!currentUuid) return;
+            const btn = document.getElementById('refreshPingBtn');
+            const curEl = document.getElementById('currentPing');
+            curEl.innerHTML = `<span class="ping-dot ping-dot-idle"></span><span class="ping-measuring">measuring…</span>`;
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+            const ms = await measurePing();
+
+            // Update history BEFORE re-rendering so "last recorded" shows the
+            // previous session's value, not the one we just took.
+            const history = loadPingHistory();
+            const prev = history[currentUuid] || {};
+            renderPingDisplay(ms);
+
+            if (ms != null) {
+                history[currentUuid] = {
+                    last: ms,
+                    highest: Math.max(prev.highest || 0, ms),
+                    updatedAt: Date.now()
+                };
+                savePingHistory(history);
+                // Re-render so "highest" reflects the new max if it changed.
+                document.getElementById('highestPing').innerText = formatPing(history[currentUuid].highest);
+            }
+
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        }
 
         function handleEnter(e) { if(e.key === 'Enter') searchUser(); }
 
@@ -350,11 +480,15 @@
 
                 // 2. Set Basic Info
                 currentName = data.username;
+                currentUuid = data.uuid;
                 currentSkinUrl = data.textures.skin.url;
                 document.getElementById('nameDisplay').innerText = data.username;
                 document.getElementById('uuidDisplay').innerText = data.uuid;
-                
-                // Trigger command update
+
+                // Show stored ping immediately, then kick off a fresh measurement.
+                renderPingDisplay(null);
+                refreshPing();
+
                 updateCommand();
 
                 // 3. History
